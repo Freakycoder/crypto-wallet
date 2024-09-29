@@ -3,22 +3,46 @@ import { generateMnemonic, mnemonicToSeedSync } from "bip39";
 import { derivePath } from "ed25519-hd-key";
 import { Keypair } from "@solana/web3.js";
 import { useState } from "react";
+import bs58 from 'bs58';
 
 export const GenerateMnemonic = () => {
+    // State to hold the seed phrase as an array of words
+    const [seedphrase, setseedphrase] = useState<string[]>(Array(12).fill(''));
 
-    const [seedphrase, setseedphrase] = useState<string[]>([...Array(12).fill('')]);
-
+    // Function to determine seed length based on the seedphrase length
     const Seedlength = () => {
-        let seedlength = seedphrase.length === 12 ? 128 : 256
-        return seedlength;
-    }
+        return seedphrase.length === 12 ? 128 : 256;
+    };
+
+    // Generate a new seed phrase
     const seedPhrase = generateMnemonic(Seedlength());
+    
+    // Update the seedphrase state with the new seed phrase split into an array of words
     setseedphrase(seedPhrase.split(' '));
-    const rootSeed = mnemonicToSeedSync(seedPhrase); // the root seed generated is in form of a buffer (<buffer ....>)
-    let accountCount = 0;
-    const Path = `m/44'/501'/${accountCount}'/0'`
-    const derivedSeed = derivePath(Path, rootSeed.toString('hex')).key; //derive path returns an object with bunch of properties, the key property has the derived seed in it(private key)
-    const secret = nacl.sign.keyPair.fromSeed(derivedSeed).secretKey; // "nacl.sign.keyPair.fromSeed(derivedSeed)" will return an object with public key and private key(secret key), but the secretKey will have both the public and private key together
-    const publicPrivatePair = Keypair.fromSecretKey(secret); // this contains an object with public and private key(Secret key) . "Keypair.fromSecretKey(secret)" takes the secret key and makes a public private key pair out of it.
-    return publicPrivatePair;
-}
+
+    // Convert the seed phrase to a root seed buffer
+    const rootSeed = mnemonicToSeedSync(seedPhrase); // the root seed generated is in the form of a buffer
+
+    let accountCount = 0; // You can change this to generate multiple accounts
+    let Path = `m/44'/501'/${accountCount}'/0'`;
+
+    // Derive the seed from the path
+    let derivedSeed = derivePath(Path, rootSeed.toString('hex')).key; // derivePath returns an object with properties, we use the key property for the derived seed
+
+    // Generate the key pair from the derived seed
+    let secret = nacl.sign.keyPair.fromSeed(derivedSeed).secretKey; // secretKey contains both the public and private key together
+
+    // Create a public-private key pair from the secret key
+    let publicPrivatePair = Keypair.fromSecretKey(secret); // Keypair object containing public and private keys
+
+    // Convert the public key to Base58 format
+    let publicKey = publicPrivatePair.publicKey.toBase58();
+    
+    // Convert the private key to Base58 format
+    let privateKey = bs58.encode(publicPrivatePair.secretKey);
+
+    // Return an object with public key, private key, and seed phrase
+    return { publicKey, 
+             privateKey, 
+             seedPhrase };
+};
