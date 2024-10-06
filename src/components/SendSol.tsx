@@ -1,7 +1,6 @@
 import { useConnection, useWallet, Wallet } from "@solana/wallet-adapter-react"
 import { Transaction, SystemProgram, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js"
 import { useState } from "react";
-import { createMint } from "@solana/spl-token";
 
 export const SendSol = () => {
 
